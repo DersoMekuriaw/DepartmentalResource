@@ -1,24 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import axios from "axios";
-
-interface Comment {
-  user: string;
-  text: string;
-}
-
-interface Resource {
-  id: number;
-  title: string;
-  description: string;
-  attachment?: string;
-  courseCode: string;
-  status: "pending" | "approved" | "rejected";
-  instructorId: number;
-  reviewerId: number | null;
-  likes: number;
-  dislikes: number;
-  comments: Comment[];
-}
+import { Comment, Resource } from '../models/resources.model';
 
 interface ResourceState {
   resources: Resource[];
@@ -64,15 +46,15 @@ export const resourceSlice = createSlice({
   name: "resources",
   initialState: { resources: [] } as ResourceState,
   reducers: {
-    likeResource: (state, action: PayloadAction<number>) => {
+    likeResource: (state, action: PayloadAction<string>) => {
       const resource = state.resources.find((r) => r.id === action.payload);
       if (resource) resource.likes += 1;
     },
-    dislikeResource: (state, action: PayloadAction<number>) => {
+    dislikeResource: (state, action: PayloadAction<string>) => {
       const resource = state.resources.find((r) => r.id === action.payload);
       if (resource) resource.dislikes += 1;
     },
-    addComment: (state, action: PayloadAction<{ id: number; comment: Comment }>) => {
+    addComment: (state, action: PayloadAction<{ id: string; comment: Comment }>) => {
       const resource = state.resources.find((r) => r.id === action.payload.id);
       if (resource) resource.comments.push(action.payload.comment);
     },

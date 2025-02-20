@@ -37,7 +37,6 @@ export const defaultAppSetting: ApplicationSetting = {
       menu: [
         { name: 'Home', url: '/' },
         { name: 'Add Resource', url: '/add-resource' },
-        { name: 'Add New Resource', url: '/add-new-resource' },
         { name: 'Add Reviewer', url: '/assign-reviewer' },
         { name: 'Review', url: '/review' },
         { name: 'View Resources', url: '/resources' }
