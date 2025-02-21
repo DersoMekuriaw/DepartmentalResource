@@ -26,10 +26,23 @@
       "id": "2d5b94a7-85d4-4e6e-9d7b-015689a2f3cd",
       "resourceTitle": "React Basics",
       "description": "Introduction to React",
-      "attachment": [],
+      "attachments": [],
       "courseCode": "CoSC1012",
       "status": "approved",
       "instructorId": "12s3d3",
+      "reviewerId": null,
+      "likes": 0,
+      "dislikes": 0,
+      "comments": []
+    },
+    {
+      "id": "b524",
+      "courseCode": "CoSc2015",
+      "resourceTitle": "Course Lab  Manual",
+      "description": "Basics of C++ Programming Language",
+      "attachments": [],
+      "instructorId": 1,
+      "status": "pending",
       "reviewerId": null,
       "likes": 0,
       "dislikes": 0,
@@ -47,7 +60,7 @@
       }
     },
     {
-      "id": "2d5b94a7-85d4-4e6e-9d7b-015689a4fdcd",
+      "id": "2d5b94a7-85d4-4e6e-9d7b-016689a4fdcd",
       "courseTitle": "Fundamentals of Database Systems ",
       "courseCode": "CoSc2041",
       "yearOfOffering": {
@@ -65,7 +78,7 @@
       }
     },
     {
-      "id": "2d5b94a7-85d4-4e6e-9d7b-015689a4fdcd",
+      "id": "2d5b94a7-85d4-4e6e-9d6b-015689a4fdcd",
       "courseTitle": "Data Communication and Computer Networks",
       "courseCode": "CoSc2032",
       "yearOfOffering": {

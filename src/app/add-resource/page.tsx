@@ -11,7 +11,7 @@ import { addResource } from '../store/resourceSlice';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
 import { Attachment, Resource } from '../models/resources.model';
-
+import CourseDropdown from '@/components/CourseDropdown';
 
 function sortData(resources: Resource[], search: string) {
   return resources.filter((item) =>
@@ -32,22 +32,29 @@ const resourceSchema = z.object({
     path: z.string(),
     timestamp: z.string(),
     file_path: z.string()
-  }))
+  })).optional()
 });
 
-export default function TableSort() {  
-  const { control, handleSubmit, formState: { errors } } = useForm({
-    resolver: zodResolver(resourceSchema),
-  });
-  
+export default function TableSort() {
   const dispatch = useDispatch<AppDispatch>();
+  
+  const { control, handleSubmit, formState: { errors }, reset } = useForm({
+    resolver: zodResolver(resourceSchema),
+    defaultValues: {
+      id: uuidv4(),
+      resourceTitle: '',
+      description: '',
+      attachments: [] as Attachment[],
+      courseCode: '',
+    },
+  });
 
-  const {resources} = useSelector((state: RootState) => state.resources);
+  const { resources } = useSelector((state: RootState) => state.resources);
   const [fileList, setFileList] = useState<Attachment[]>([]);
   const [search, setSearch] = useState('');
   const [sortedData, setSortedData] = useState(resources);
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
-  const [formData, setFormData] = useState<any>(null);
+  const [isCreating, setIsCreating] = useState(false); // Track if we're creating a new resource
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -63,20 +70,17 @@ export default function TableSort() {
     if (!order) return;
   
     const sorted = [...sortedData].sort((a, b) => {
-      // Ensure that the values are not null or undefined
       if (a[key] == null && b[key] == null) return 0;
       if (a[key] == null) return order === "ascend" ? -1 : 1;
       if (b[key] == null) return order === "ascend" ? 1 : -1;
   
-      // Now it's safe to compare non-null values
-      if (a[key] < b[key]) return order === "ascend" ? -1 : 1;
-      if (a[key] > b[key]) return order === "ascend" ? 1 : -1;
+      if (a[key]! < b[key]!) return order === "ascend" ? -1 : 1;
+      if (a[key]! > b[key]!) return order === "ascend" ? 1 : -1;
       return 0;
     });
   
     setSortedData(sorted);
   };
-  
 
   const handlePageChange = (page: number, pageSize?: number) => {
     setCurrentPage(page);
@@ -84,37 +88,69 @@ export default function TableSort() {
   };
 
   const handleNewResource = () => {
-    setSelectedResource(null);
-    setFormData({ id: uuidv4(), title: '', description: '', attachments: [], courseCode: '' });
+    setIsCreating(true); // Set to create mode
+    setSelectedResource(null); // Clear selected resource
+    reset({
+      id: uuidv4(), // Generate a new ID for the new resource
+      resourceTitle: '',
+      description: '',
+      attachments: [],
+      courseCode: '',
+    });
     setFileList([]);
   };
 
   const handleRowClick = (resource: Resource) => {
-    setSelectedResource(resource);
-    setFormData(resource);
+    setIsCreating(false); // Set to edit mode
+    setSelectedResource(resource); // Set the selected resource
+    reset({
+      ...resource,
+      attachments: resource.attachments || [], // Provide a fallback empty array
+    });
     setFileList(resource.attachments || []);
   };
 
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!formData) return;
-    setFormData({ ...formData, [event.target.name]: event.target.value });
+  const handleCloseDetail = () => {
+    setIsCreating(false); // Exit create/edit mode
+    setSelectedResource(null); // Clear selected resource
+    reset({
+      id: uuidv4(), // Reset to default values for a new resource
+      resourceTitle: '',
+      description: '',
+      attachments: [],
+      courseCode: '',
+    });
+    setFileList([]);
   };
 
   const onSubmit = (data: any) => {
-      dispatch(addResource({ 
-        ...data, 
-        instructorId: 1, 
-        status: "pending", 
-        reviewerId: null, 
-        likes: 0, 
-        dislikes: 0, 
-        comments: [] 
-      }));
-      message.success(selectedResource ? 'Resource updated successfully!' : 'Resource created successfully!');
-      setSelectedResource(null);
-      setFormData(null);
-      setFileList([]);
-    };
+    dispatch(
+      addResource({
+        ...data,
+        instructorId: 1,
+        status: "pending",
+        reviewerId: null,
+        likes: 0,
+        dislikes: 0,
+        comments: [],
+      })
+    );
+
+    // Show a success message
+    message.success(isCreating ? 'Resource created successfully!' : 'Resource updated successfully!');
+
+    // Reset the form and state
+    setIsCreating(false);
+    setSelectedResource(null);
+    reset({
+      id: uuidv4(), // Reset to default values for a new resource
+      resourceTitle: '',
+      description: '',
+      attachments: [],
+      courseCode: '',
+    });
+    setFileList([]);
+  };
 
   const handleDelete = () => {
     if (!selectedResource) return;
@@ -123,13 +159,17 @@ export default function TableSort() {
       onOk: () => {
         setSortedData((prev) => prev.filter((p) => p.id !== selectedResource.id));
         setSelectedResource(null);
-        setFormData(null);
+        reset({
+          id: uuidv4(), // Reset to default values for a new resource
+          resourceTitle: '',
+          description: '',
+          attachments: [],
+          courseCode: '',
+        });
         setFileList([]);
       },
     });
   };
-
-  const isEditing = formData !== null;
 
   const columns: ColumnType<Resource>[] = [
     {
@@ -163,8 +203,7 @@ export default function TableSort() {
       }),
     },
   ];
-  
-  // Define the primaryColumn with the correct type
+
   const primaryColumn: ColumnType<Resource> = {
     title: 'Resource Title',
     dataIndex: 'resourceTitle',
@@ -172,12 +211,13 @@ export default function TableSort() {
     sorter: (a: Resource, b: Resource) => a.resourceTitle.localeCompare(b.resourceTitle),
     sortDirections: ['ascend', 'descend'],
   };
+
   const currentPageData = sortedData.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
     <div>
-      <div className={`m-2 flex ${isEditing ? 'flex-col md:flex-row gap-2' : 'w-full'}`}>
-        <div className={isEditing ? 'w-1/3' : 'w-full'}>
+      <div className={`m-2 flex ${selectedResource || isCreating ? 'flex-col md:flex-row gap-2' : 'w-full'}`}>
+        <div className={selectedResource || isCreating ? 'w-1/3' : 'w-full'}>
           <Card title="Departmental Resource" extra={<Button icon={<PlusOutlined />} onClick={handleNewResource}>New</Button>}>
             <Input
               placeholder="Search here"
@@ -198,7 +238,7 @@ export default function TableSort() {
                 onClick: () => handleRowClick(record),
                 className: record.id === selectedResource?.id ? 'bg-blue-100 border-l-4 border-blue-500' : '',
               })}
-              columns={formData ? [primaryColumn] : columns}
+              columns={selectedResource || isCreating ? [primaryColumn] : columns}
             />
 
             <Pagination
@@ -213,23 +253,21 @@ export default function TableSort() {
           </Card>
         </div>
 
-        {formData && (
-          <div className={isFullscreen ? 'w-full' : 'w-full'}>
-            {isEditing && (
-              <Card>
-                <div className="flex flex-row justify-between items-center">
-                  <p className="">{selectedResource ? selectedResource.resourceTitle : 'New Resource'}</p>
-                  <div className="flex items-center space-x-2 ml-auto">
-                    <Button onClick={() => setIsFullscreen(!isFullscreen)}>
-                      {isFullscreen ? <CompressOutlined /> : <FullscreenOutlined />}
-                    </Button>
-                    <Button onClick={() => { setSelectedResource(null); setFormData(null); }}>
-                      <CloseOutlined />
-                    </Button>
-                  </div>
+        {(selectedResource || isCreating) && (
+          <div className={isFullscreen ? 'w-full' : 'w-2/3'}>
+            <Card>
+              <div className="flex flex-row justify-between items-center">
+                <p className="">{selectedResource ? selectedResource.resourceTitle : 'New Resource'}</p>
+                <div className="flex items-center space-x-2 ml-auto">
+                  <Button onClick={() => setIsFullscreen(!isFullscreen)}>
+                    {isFullscreen ? <CompressOutlined /> : <FullscreenOutlined />}
+                  </Button>
+                  <Button onClick={handleCloseDetail}>
+                    <CloseOutlined />
+                  </Button>
                 </div>
-              </Card>
-            )}
+              </div>
+            </Card>
             <Card title={selectedResource ? 'Edit Resource' : 'New Resource'} className='mt-2'>
               <Form
                 className="w-full p-4 bg-white"
@@ -239,27 +277,8 @@ export default function TableSort() {
                 onFinish={handleSubmit(onSubmit)}
                 autoComplete="on"
               >
+                <CourseDropdown control={control} errors={errors} />
 
-                {/* Course Field */}
-                <Form.Item
-                  label="Course"
-                  validateStatus={errors.course ? "error" : ""}
-                  help={errors.courseCode?.message?.toString()}
-                >
-                  <Controller
-                    name="courseCode"
-                    control={control}
-                    render={({ field }) => (
-                      <Select {...field} placeholder="eg. Web Programming (CS101)">
-                        <Select.Option value="CoSc2015">Fundamentals of Programming (CS101)</Select.Option>
-                        <Select.Option value="CoSc3081">Web Programming</Select.Option>
-                        <Select.Option value="CoSc3053">Java Programming</Select.Option>
-                      </Select>
-                    )}
-                  />
-                </Form.Item>
-
-                {/* Title Field */}
                 <Form.Item
                   label="Resource Title"
                   validateStatus={errors.resourceTitle ? "error" : ""}
@@ -272,7 +291,6 @@ export default function TableSort() {
                   />
                 </Form.Item>
 
-                {/* Description Field */}
                 <Form.Item
                   label="Description"
                   validateStatus={errors.description ? "error" : ""}
@@ -285,51 +303,55 @@ export default function TableSort() {
                   />
                 </Form.Item>
 
-                {/* Attachment Field */}
                 <Form.Item
                   label="Attachment"
                   validateStatus={errors.attachments ? "error" : ""}
                   help={errors.attachments?.message?.toString()}
                 >
-                  <Upload
-                    fileList={fileList.map((file) => ({
-                      uid: file.id,
-                      name: file.file_name,
-                      status: 'done',
-                      url: file.file_path,
-                    }))}
-                    beforeUpload={(file) => {
-                      const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.presentationml.presentation'];
-                      if (!allowedTypes.includes(file.type)) {
-                        message.error("Only PDF, DOCX, and PPTX files are allowed!");
-                        return Upload.LIST_IGNORE;
-                      }
-                      return true;
-                    }}
-                    onChange={({ fileList }) => {
-                      setFileList(
-                        fileList.map((file) => ({
-                          id: file.uid,
-                          file_name: file.name,
-                          file_type: file.type || '',
-                          path: file.url || '',
-                          timestamp: new Date().toISOString(),
-                          file_path: file.url || '',
-                        }))
-                      );
-                    }}
-                    maxCount={1}
-                  >
-                    <Button icon={<UploadOutlined />}>Click to Upload</Button>
-                  </Upload>
+                  <Controller
+                    name="attachments"
+                    control={control}
+                    render={({ field }) => (
+                      <Upload
+                        {...field}
+                        fileList={fileList.map((file) => ({
+                          uid: file.id,
+                          name: file.file_name,
+                          status: 'done',
+                          url: file.file_path,
+                        }))}
+                        beforeUpload={(file) => {
+                          const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.presentationml.presentation'];
+                          if (!allowedTypes.includes(file.type)) {
+                            message.error("Only PDF, DOCX, and PPTX files are allowed!");
+                            return Upload.LIST_IGNORE;
+                          }
+                          return true;
+                        }}
+                        onChange={({ fileList }) => {
+                          setFileList(
+                            fileList.map((file) => ({
+                              id: file.uid,
+                              file_name: file.name,
+                              file_type: file.type || '',
+                              path: file.url || '',
+                              timestamp: new Date().toISOString(),
+                              file_path: file.url || '',
+                            }))
+                          );
+                        }}
+                        maxCount={1}
+                      >
+                        <Button icon={<UploadOutlined />}>Click to Upload</Button>
+                      </Upload>
+                    )}
+                  />
                 </Form.Item>
-
-                {/* Submit Button */}
                 <Form.Item wrapperCol={{ offset: 2, span: 16 }}>
-                    <Button type="primary" htmlType="submit" className='mr-2'>
-                      {selectedResource ? 'Update' : 'Save'}
-                    </Button>
-                    {selectedResource && <Button type="primary" danger icon={<DeleteOutlined />} onClick={handleDelete}>Delete</Button>}
+                  <Button type="primary" htmlType="submit" className='mr-2'>
+                    {selectedResource ? 'Update' : 'Save'}
+                  </Button>
+                  {selectedResource && <Button type="primary" danger icon={<DeleteOutlined />} onClick={handleDelete}>Delete</Button>}
                 </Form.Item>
               </Form>
             </Card>

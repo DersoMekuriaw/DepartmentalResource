@@ -18,13 +18,13 @@ export interface Comment {
     id: string;
     resourceTitle: string;
     description: string;
-    attachments: Attachment[]; 
+    attachments: Attachment[]; // Ensure this is defined as Attachment[]
     courseCode: string;
-    status: "pending" | "approved" | "rejected"; 
+    status: "pending" | "approved" | "rejected";
     instructorId: string;
     reviewerId: number | null;
     likes: number;
     dislikes: number;
-    comments: Comment[]; 
+    comments: Comment[];
   }
   

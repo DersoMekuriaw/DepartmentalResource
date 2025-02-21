@@ -16,7 +16,7 @@ export const fetchResources = createAsyncThunk("resources/fetchResources", async
   return response.data;
 });
 
-export const addResource = createAsyncThunk("resources/addResource", async (newResource: Omit<Resource, "id">) => {
+export const addResource = createAsyncThunk("resources/addResource", async (newResource: Resource) => {
   const response = await axios.post<Resource>(API_URL, newResource);
   return response.data;
 });
